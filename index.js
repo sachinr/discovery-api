@@ -1,41 +1,28 @@
-const RateLimiter = require('request-rate-limiter');
+const discoveryAPI = require('./discovery');
 
-const limiter = new RateLimiter({ rate: 20, interval: 1, backoffCode: 429, backoffTime: 1 });
+const getListAndHistory = (methods, team) => {
+  const params = team ? { team: team.id } : {};
 
-const apiCall = (method, params) =>
-  new Promise((resolve, reject) => {
-    const token = { token: process.env.TOKEN };
-    const req = limiter.request({
-      url: `https://slack.com/api/discovery.${method}`,
-      method: 'post',
-      form: Object.assign({}, token, params),
+  methods.forEach((method) => {
+    discoveryAPI.fetch(`${method}.list`, params).then((listResult) => {
+      listResult[method].forEach((channel) => {
+        params.channel = channel.id;
+        discoveryAPI.fetch(`${method}.history`, params).then((historyResult) => {
+          console.log(historyResult);
+        });
+      });
     });
-
-    req.then((result) => {
-      resolve(JSON.parse(result.body));
-    }).catch(err => reject(err));
   });
+};
 
 const init = () => {
-  apiCall('enterprise.info').then((infoResult) => {
-    infoResult.teams.forEach((team) => {
-      ['channels', 'groups'].forEach((method) => {
-        apiCall(`${method}.list`, { team: team.id }).then((listResult) => {
-          listResult.channels.forEach((channel) => {
-            apiCall(`${method}.history`, { team: team.id, channel: channel.id });
-          });
-        });
-      });
-    });
-
-    ['channels', 'groups', 'dms'].forEach((method) => {
-      apiCall(`${method}.list`).then((listResult) => {
-        listResult.channels.forEach((channel) => {
-          apiCall(`${method}.history`, { channel: channel.id });
-        });
-      });
+  discoveryAPI.fetch('enterprise.info').then((infoResult) => {
+    infoResult.enterprise.teams.forEach((team) => {
+      getListAndHistory(['channels', 'groups'], team);
     });
   });
+
+  getListAndHistory(['channels', 'groups', 'dms']);
 };
 
 init();
