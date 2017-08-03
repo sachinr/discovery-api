@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.16.1",
+    "dotenv": "^4.0.0",
     "qs": "^6.4.0",
     "request-rate-limiter": "^1.0.1"
   }
