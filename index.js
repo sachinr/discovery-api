@@ -1,3 +1,4 @@
+require('dotenv').config();
 const discoveryAPI = require('./discovery');
 
 const getListAndHistory = (methods, team) => {
